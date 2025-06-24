@@ -451,7 +451,7 @@ const EnhancedKanbanGroup: React.FC<EnhancedKanbanGroupProps> = React.memo(({
         )} */}
       </div>
 
-      <div className="enhanced-kanban-group-tasks" ref={groupRef}>
+      <div className="enhanced-kanban-group-tasks gap-y-2 flex flex-col" ref={groupRef}>
         {/* Create card at top */}
         {showNewCardTop && (isOwnerOrAdmin || isProjectManager) && (
           <EnhancedKanbanCreateTaskCard sectionId={group.id} setShowNewCard={setShowNewCardTop} position="top" />
