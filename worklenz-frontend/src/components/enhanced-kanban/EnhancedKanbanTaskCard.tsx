@@ -20,7 +20,7 @@ import { ForkOutlined } from '@ant-design/icons';
 import { Dayjs } from 'dayjs';
 import dayjs from 'dayjs';
 import { CaretDownFilled, CaretRightFilled } from '@ant-design/icons';
-import { fetchBoardSubTasks } from '@/features/enhanced-kanban/enhanced-kanban.slice';
+import { fetchBoardSubTasks, toggleSubtaskExpansion } from '@/features/enhanced-kanban/enhanced-kanban.slice';
 import { Divider } from 'antd';
 import { List } from 'antd';
 import { Skeleton } from 'antd';
@@ -114,16 +114,16 @@ const EnhancedKanbanTaskCard: React.FC<EnhancedKanbanTaskCardProps> = React.memo
 
 
   const handleSubTaskExpand = useCallback(() => {
-    console.log('handleSubTaskExpand', task, projectId);
     if (task && task.id && projectId) {
+
       if (task.show_sub_tasks) {
-        // If subtasks are already loaded, just toggle visibility
-        setIsSubTaskShow(prev => !prev);
+        dispatch(toggleSubtaskExpansion(task.id));
       } else {
-        // If subtasks need to be fetched, show the section first with loading state
-        setIsSubTaskShow(true);
+        // setIsSubTaskShow(true);
         dispatch(fetchBoardSubTasks({ taskId: task.id, projectId }));
+        dispatch(toggleSubtaskExpansion(task.id));
       }
+      setIsSubTaskShow(prev => !prev);
     }
   }, [task, projectId, dispatch]);
 

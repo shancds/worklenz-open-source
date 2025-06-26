@@ -562,6 +562,55 @@ const enhancedKanbanSlice = createSlice({
 
         // Update column order
         state.columnOrder = reorderedGroups.map(group => group.id);
+      })
+      .addCase(fetchBoardSubTasks.pending, (state, action) => {
+        // Set sub_tasks_loading=true on the parent task
+        const { taskId } = action.meta.arg;
+        for (const group of state.taskGroups) {
+          const parent = group.tasks.find(t => t.id === taskId);
+          if (parent) {
+            parent.sub_tasks_loading = true;
+            break;
+          }
+        }
+      })
+      .addCase(fetchBoardSubTasks.fulfilled, (state, action) => {
+        // Set sub_tasks, sub_tasks_loading=false, sub_tasks_count
+        const subtasks = action.payload;
+        let parentTaskId = '';
+        if (
+          Array.isArray(subtasks) &&
+          subtasks.length > 0 &&
+          typeof subtasks[0] === 'object' &&
+          subtasks[0] !== null &&
+          typeof (subtasks[0] as any).parent_task_id === 'string'
+        ) {
+          parentTaskId = ((subtasks[0] as unknown) as { parent_task_id: string }).parent_task_id;
+        } else if ((action as any).meta?.arg?.taskId) {
+          parentTaskId = (action as any).meta.arg.taskId;
+        }
+        if (parentTaskId) {
+          for (const group of state.taskGroups) {
+            const parent = group.tasks.find((t: any) => t.id === parentTaskId);
+            if (parent) {
+              parent.sub_tasks = subtasks;
+              parent.sub_tasks_loading = false;
+              parent.sub_tasks_count = Array.isArray(subtasks) ? subtasks.length : 0;
+              break;
+            }
+          }
+        }
+      })
+      .addCase(fetchBoardSubTasks.rejected, (state, action) => {
+        // Set sub_tasks_loading=false on the parent task
+        const { taskId } = action.meta.arg;
+        for (const group of state.taskGroups) {
+          const parent = group.tasks.find(t => t.id === taskId);
+          if (parent) {
+            parent.sub_tasks_loading = false;
+            break;
+          }
+        }
       });
   },
 });
