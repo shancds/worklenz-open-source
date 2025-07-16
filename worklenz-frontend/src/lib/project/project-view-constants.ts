@@ -19,6 +19,9 @@ const ProjectViewMembers = React.lazy(
 const ProjectViewUpdates = React.lazy(
   () => import('@/pages/projects/project-view-1/updates/project-view-updates')
 );
+const ProjectViewGantt = React.lazy(
+  () => import('@/pages/projects/projectView/roadmap/project-view-roadmap')
+);
 
 // type of a tab items
 type TabItems = {
@@ -39,6 +42,7 @@ const getTabLabel = (key: string): string => {
       const fallbacks: Record<string, string> = {
         taskList: 'Task List',
         board: 'Board',
+        roadmap: 'Roadmap',
         insights: 'Insights',
         files: 'Files',
         members: 'Members',
@@ -52,6 +56,7 @@ const getTabLabel = (key: string): string => {
     const fallbacks: Record<string, string> = {
       taskList: 'Task List',
       board: 'Board',
+      roadmap: 'Roadmap',
       insights: 'Insights',
       files: 'Files',
       members: 'Members',
@@ -79,6 +84,12 @@ export const tabItems: TabItems[] = [
   },
   {
     index: 2,
+    key: 'roadmap',
+    label: getTabLabel('roadmap'),
+    element: React.createElement(ProjectViewGantt),
+  },
+  {
+    index: 3,
     key: 'project-insights-member-overview',
     label: getTabLabel('insights'),
     element: React.createElement(
@@ -88,7 +99,7 @@ export const tabItems: TabItems[] = [
     ),
   },
   {
-    index: 3,
+    index: 4,
     key: 'all-attachments',
     label: getTabLabel('files'),
     element: React.createElement(
@@ -98,7 +109,7 @@ export const tabItems: TabItems[] = [
     ),
   },
   {
-    index: 4,
+    index: 5,
     key: 'members',
     label: getTabLabel('members'),
     element: React.createElement(
@@ -108,7 +119,7 @@ export const tabItems: TabItems[] = [
     ),
   },
   {
-    index: 5,
+    index: 6,
     key: 'updates',
     label: getTabLabel('updates'),
     element: React.createElement(

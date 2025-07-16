@@ -7,7 +7,6 @@ import {
 } from '@ant-design/icons';
 import { NewTaskType, toggleTaskExpansion } from '@features/roadmap/roadmap-slice';
 import { useAppDispatch } from '@/hooks/useAppDispatch';
-import { toggleTaskDrawer } from '@features/tasks/taskSlice';
 import { colors } from '@/styles/colors';
 
 type RoadmapTaskCellProps = {
@@ -94,7 +93,7 @@ const RoadmapTaskCell = ({ task, isSubtask = false }: RoadmapTaskCellProps) => {
         type="text"
         icon={<ExpandAltOutlined />}
         onClick={() => {
-          dispatch(toggleTaskDrawer());
+          // dispatch(toggleTaskDrawer());
         }}
         style={{
           backgroundColor: colors.transparent,
