@@ -1,6 +1,3 @@
-// Fix for missing type declarations for 'wx-react-gantt'
-declare module "wx-react-gantt";
-// @ts-ignore: No type definitions for 'wx-react-gantt'
 import React, { useEffect, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useAppDispatch } from "@/hooks/useAppDispatch";
@@ -9,7 +6,6 @@ import { Gantt, Willow, WillowDark } from "wx-react-gantt";
 import "wx-react-gantt/dist/gantt.css";
 import dayjs from "dayjs";
 import { Select } from 'antd';
-import { ThemeProvider } from "@emotion/react";
 
 const VIEW_MODES = [
   { value: "day", label: "Day" },
@@ -83,7 +79,7 @@ const ProjectViewGantt = () => {
       start: new Date(2024, 7, 10),
       end: new Date(2024, 8, 12),
       duration: 3,
-      progress: 0,
+      progress: 1,
       type: "task",
       lazy: false,
     },
