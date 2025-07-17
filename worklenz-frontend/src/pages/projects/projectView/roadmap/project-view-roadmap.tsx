@@ -89,25 +89,18 @@ const ProjectViewGantt = () => {
     },
   ];
 
-  const links = [{ id: 1, source: 20, target: 21, type: "e2e" }];
 
-  const scales = [
-    { unit: "month", step: 1, format: "MMMM yyy" },
-    { unit: "day", step: 1, format: "d" },
-  ];
 
   const columns = [
-    { id: "text", header: "Task name", flexGrow: 2 },
+    { id: "text", header: "Task name" },
     {
       id: "start",
       header: "Start date",
-      flexGrow: 1,
       align: "center",
     },
     {
       id: "end",
       header: "End date",
-      flexGrow: 1,
       align: "center",
     },
   ];
@@ -118,10 +111,10 @@ const ProjectViewGantt = () => {
   };
   
   const complexScales = [
+    { unit: "day", step: 1, format: "d MMM", css: dayStyle },
     { unit: "year", step: 1, format: "yyyy" },
     { unit: "month", step: 2, format: "MMMM yyy" },
-    { unit: "week", step: 1, format: "w" },
-    { unit: "day", step: 1, format: "d", css: dayStyle },
+    { unit: "week", step: 1, format: "w MMM" },
   ];
 
 
@@ -146,14 +139,12 @@ const ProjectViewGantt = () => {
         style={{ height: "70vh" }}
       >
         <Willow>
-          <div className={themeMode ? "wx-willow-dark-theme" : "wx-willow-theme"} style={{ height: "70vh", borderRadius: "10px", overflow: "hidden" }}>
+          <div className={themeMode ? "wx-willow-dark-theme" : "wx-willow-theme"} style={{ height: "70vh" }}>
           <Gantt
             tasks={tasks}
-            links={links}
             scales={[complexScales[selectedScaleIdx]]}
             columns={columns}
             lengthUnit={lengthUnit}
-            className="wx-willow-dark-theme"
           />
           </div>
         </Willow>
