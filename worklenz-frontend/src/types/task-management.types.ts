@@ -2,6 +2,17 @@ import { InlineMember } from './teamMembers/inlineMember.types';
 import { EntityState } from '@reduxjs/toolkit';
 import { ITaskListColumn } from './tasks/taskList.types';
 
+export interface roadmapTask {
+  id: string;
+  text: string;
+  startDate: string;
+  endDate: string;
+  progress: number;
+  type: string;
+  lazy: boolean;
+  parent: string;
+}
+
 export interface Task {
   id: string;
   title?: string; // Make title optional since it can be empty from database
