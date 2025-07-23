@@ -12,6 +12,7 @@ const projectMembersApiRouter = express.Router();
 
 projectMembersApiRouter.post("/", projectManagerValidator, safeControllerFunction(ProjectMembersController.create));
 projectMembersApiRouter.post("/invite", teamOwnerOrAdminValidator, projectMemberInviteValidator, safeControllerFunction(ProjectMembersController.createByEmail));
+projectMembersApiRouter.post("/invite-link", teamOwnerOrAdminValidator, safeControllerFunction(ProjectMembersController.generateProjectInviteLink));
 projectMembersApiRouter.get("/:id", idParamValidator, safeControllerFunction(ProjectMembersController.get)); // id = project id
 projectMembersApiRouter.delete("/:id", projectManagerValidator, safeControllerFunction(ProjectMembersController.deleteById));
 

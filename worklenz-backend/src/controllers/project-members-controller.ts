@@ -11,6 +11,7 @@ import {checkTeamSubscriptionStatus} from "../shared/paddle-utils";
 import {updateUsers} from "../shared/paddle-requests";
 import {statusExclude} from "../shared/constants";
 import {NotificationsService} from "../services/notifications/notifications.service";
+import TokenService from "../services/token-service";
 
 export default class ProjectMembersController extends WorklenzControllerBase {
 
@@ -160,6 +161,49 @@ export default class ProjectMembersController extends WorklenzControllerBase {
     };
     const data = await this.createOrInviteMembers(projectMemberReq);
     return res.status(200).send(new ServerResponse(true, data.member));
+  }
+
+  @HandleExceptions()
+  public static async generateProjectInviteLink(req: IWorkLenzRequest, res: IWorkLenzResponse): Promise<IWorkLenzResponse> {
+    const user_id = req.user?.id;
+    const team_id = req.user?.team_id;
+    const project_id = req.body.project_id;
+
+    if (!user_id || !team_id || !project_id) {
+      return res.status(400).send(new ServerResponse(false, null, "Authorization failed."));
+    }
+
+    const project = await db.query(`SELECT * FROM projects WHERE id = $1 AND team_id = $2`, [project_id, team_id]);
+    if (!project.rows.length) {
+      return res.status(400).send(new ServerResponse(false, null, "Project not found."));
+    }
+
+    const expires_at = Date.now() + 1000 * 60 * 60 * 24;
+
+    const invite_token = TokenService.generateProjectInviteToken({
+      projectId: project_id,
+      userId: user_id,
+      type: "project_invite",
+      expiresAt: expires_at,
+      projectName: project.rows[0].name,
+    });
+
+    const q = `INSERT INTO project_invitations (project_id, token, invited_by, expires_at, created_at, updated_at) VALUES ($1, $2, $3, $4, NOW(), NOW())
+    ON CONFLICT (project_id)
+    DO UPDATE SET
+    token = EXCLUDED.token,
+    invited_by = EXCLUDED.invited_by,
+    expires_at = EXCLUDED.expires_at,
+    updated_at = NOW();`;
+    await db.query(q, [project_id, invite_token, user_id, new Date(expires_at)]);
+
+    const invite_link = `${process.env.FRONTEND_URL}/worklenz/project-invite/${project_id}?token=${invite_token}`;
+
+    return res.status(200).send(new ServerResponse(true, {
+      invite_link,
+      token: invite_token,
+      expires_at: new Date(expires_at).toISOString()
+    }, "Project invite link copied."));
   }
 
   @HandleExceptions()

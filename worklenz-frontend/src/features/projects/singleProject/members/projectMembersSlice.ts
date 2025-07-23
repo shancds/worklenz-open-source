@@ -84,6 +84,14 @@ const createByEmail = createAsyncThunk(
   }
 );
 
+const generateProjectInviteLink = createAsyncThunk(
+  'projectMembers/generateProjectInviteLink',
+  async (params: { project_id: string }) => {
+    const response = await projectMembersApiService.generateProjectInviteLink(params);
+    return response;
+  }
+);
+
 const projectMembersSlice = createSlice({
   name: 'projectMembers',
 
@@ -154,5 +162,6 @@ export {
   deleteProjectMember,
   addProjectMember,
   createByEmail,
+  generateProjectInviteLink,
 };
 export default projectMembersSlice.reducer;

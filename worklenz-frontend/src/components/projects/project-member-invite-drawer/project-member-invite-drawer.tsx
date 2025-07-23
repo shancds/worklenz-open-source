@@ -1,4 +1,4 @@
-import { Drawer, Flex, Form, Select, Typography, List, Button, Modal, Divider } from 'antd/es';
+import { Drawer, Flex, Form, Select, Typography, List, Button, Modal, Divider, message } from 'antd/es';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 
@@ -8,6 +8,7 @@ import {
   addProjectMember,
   createByEmail,
   deleteProjectMember,
+  generateProjectInviteLink,
   getAllProjectMembers,
   toggleProjectMemberDrawer,
 } from '@/features/projects/singleProject/members/projectMembersSlice';
@@ -33,6 +34,7 @@ const ProjectMemberDrawer = () => {
   const [isInviting, setIsInviting] = useState(false);
   const [members, setMembers] = useState<ITeamMembersViewModel>({ data: [], total: 0 });
   const [teamMembersLoading, setTeamMembersLoading] = useState(false);
+  const [isCoping, setIsCoping] = useState(false);
 
   const fetchProjectMembers = async () => {
     if (!projectId) return;
@@ -197,6 +199,16 @@ const ProjectMemberDrawer = () => {
     </Flex>
   );
 
+  const handleCopyProjectLink = async () => {
+    if (!projectId) return;
+    setIsCoping(true);
+    const res = await dispatch(generateProjectInviteLink({ project_id: projectId })).unwrap();
+    if (res.done) {
+      await navigator.clipboard.writeText(res.body.invite_link);
+    }
+    setIsCoping(false);
+  }
+
   return (
       <Modal
         title={
@@ -211,7 +223,8 @@ const ProjectMemberDrawer = () => {
             style={{ width: 140, fontSize: 12 }}
             block
             icon={<LinkOutlined />}
-            disabled
+            onClick={handleCopyProjectLink}
+            loading={isCoping}
           >
             {t('copyProjectLink')}
           </Button>}
