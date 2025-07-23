@@ -83,7 +83,7 @@ export default class ProjectMembersController extends WorklenzControllerBase {
     }
 
     // Handle self-hosted subscriptions differently
-    if (subscriptionData.subscription_type === 'SELF_HOSTED') {
+    if (subscriptionData.subscription_type === "SELF_HOSTED") {
       // Adding as a team member
       const teamMemberReq: { team_id?: string; emails: string[], project_id?: string; } = {
         team_id: req.user?.team_id,
@@ -127,8 +127,8 @@ export default class ProjectMembersController extends WorklenzControllerBase {
       const updatedCount = parseInt(subscriptionData.current_count) + 1;
       const requiredSeats = updatedCount - subscriptionData.quantity;
       if (updatedCount > subscriptionData.quantity) {
-        const obj = { 
-          seats_enough: false, 
+        const obj = {
+          seats_enough: false,
           required_count: requiredSeats,
           current_seat_amount: subscriptionData.quantity
         };

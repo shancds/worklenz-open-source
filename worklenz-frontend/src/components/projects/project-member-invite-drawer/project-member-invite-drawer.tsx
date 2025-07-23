@@ -207,14 +207,14 @@ const ProjectMemberDrawer = () => {
         afterOpenChange={handleOpenChange}
         footer={
           <>
-          {/* {!isFromAssigner && <Button
+          {!isFromAssigner && <Button
             style={{ width: 140, fontSize: 12 }}
             block
             icon={<LinkOutlined />}
             disabled
           >
             {t('copyProjectLink')}
-          </Button>} */}
+          </Button>}
           </>
         }
       >
