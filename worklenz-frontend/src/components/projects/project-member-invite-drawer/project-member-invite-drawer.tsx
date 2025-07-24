@@ -204,7 +204,8 @@ const ProjectMemberDrawer = () => {
     setIsCoping(true);
     const res = await dispatch(generateProjectInviteLink({ project_id: projectId })).unwrap();
     if (res.done) {
-      await navigator.clipboard.writeText(res.body.invite_link);
+      const link = `${window.location.href.split("?")[0]}/invite_link/${res.body.invitation_id}`;
+      await navigator.clipboard.writeText(link);
     }
     setIsCoping(false);
   }

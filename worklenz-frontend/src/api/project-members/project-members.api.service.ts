@@ -34,7 +34,19 @@ export const projectMembersApiService = {
     project_id: string;
   }): Promise<IServerResponse<IProjectMemberViewModel>> => {
     const response = await apiClient.post<IServerResponse<IProjectMemberViewModel>>(
-      `${rootUrl}/invite-link`,
+      `${rootUrl}/invite/link/project`,
+      body
+    );
+    return response.data;
+  },
+
+  acceptProjectInvite: async (body: {
+    project_id: string;
+    invitation_id: string;
+    email: string;
+  }): Promise<IServerResponse<IProjectMemberViewModel>> => {
+    const response = await apiClient.post<IServerResponse<IProjectMemberViewModel>>(
+      `${rootUrl}/verify-project-invite-link`,
       body
     );
     return response.data;

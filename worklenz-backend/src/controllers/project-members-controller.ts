@@ -194,16 +194,41 @@ export default class ProjectMembersController extends WorklenzControllerBase {
     token = EXCLUDED.token,
     invited_by = EXCLUDED.invited_by,
     expires_at = EXCLUDED.expires_at,
-    updated_at = NOW();`;
-    await db.query(q, [project_id, invite_token, user_id, new Date(expires_at)]);
-
-    const invite_link = `${process.env.FRONTEND_URL}/worklenz/project-invite/${project_id}?token=${invite_token}`;
-
+    updated_at = NOW()
+    RETURNING id;`;
+    const result = await db.query(q, [project_id, invite_token, user_id, new Date(expires_at)]);
+    const invitationId = result.rows[0]?.id;
     return res.status(200).send(new ServerResponse(true, {
-      invite_link,
-      token: invite_token,
+      invitation_id: invitationId,
       expires_at: new Date(expires_at).toISOString()
     }, "Project invite link copied."));
+  }
+
+  @HandleExceptions()
+  public static async verifyProjectInviteLink(req: IWorkLenzRequest, res: IWorkLenzResponse) {
+    const {project_id, invitation_id, email} = req.body;
+    if (!project_id || !invitation_id || !email) {
+      return res.status(400).send(new ServerResponse(false, null, "Invalid request."));
+    }
+    const q = `SELECT * FROM project_invitations WHERE project_id = $1 AND id = $2 AND expires_at > NOW();`;
+    const result = await db.query(q, [project_id, invitation_id]);
+    const [data] = result.rows;
+    if (!data) {
+      return res.status(400).send(new ServerResponse(false, null, "Invalid request."));
+    }
+    const q2 = `SELECT u.id FROM users u WHERE u.email = $1;`;
+    const result2 = await db.query(q2, [email.trim()]);
+    const [data2] = result2.rows;
+    if (!data2) {
+      return res.status(400).send(new ServerResponse(false, null, "create account first."));
+    }
+    const q3 = `SELECT tm.id FROM team_members tm INNER JOIN project_members pm ON tm.id = pm.team_member_id WHERE tm.user_id = $1 AND pm.project_id = $2;`;
+    const result3 = await db.query(q3, [data2.id, project_id]);
+    const [data3] = result3.rows;
+    if (data3) {
+      return res.status(200).send(new ServerResponse(true, null, "User already exists in the project."));
+    }
+    return res.status(400).send(new ServerResponse(false, null, null));
   }
 
   @HandleExceptions()
