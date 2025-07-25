@@ -1,6 +1,6 @@
 import { IProjectMemberViewModel } from '@/types/projectMember.types';
 import apiClient from '../api-client';
-import { API_BASE_URL } from '@/shared/constants';
+import { API_BASE_URL, AUTH_API_BASE_URL } from '@/shared/constants';
 import { IServerResponse } from '@/types/common.types';
 import { toQueryString } from '@/utils/toQueryString';
 
@@ -40,13 +40,24 @@ export const projectMembersApiService = {
     return response.data;
   },
 
-  acceptProjectInvite: async (body: {
+  verifyProjectInviteLink: async (body: {
     project_id: string;
     invitation_id: string;
-    email: string;
-  }): Promise<IServerResponse<IProjectMemberViewModel>> => {
-    const response = await apiClient.post<IServerResponse<IProjectMemberViewModel>>(
-      `${rootUrl}/verify-project-invite-link`,
+  }): Promise<IServerResponse<{
+    invite_link_id: string;
+    expires_date: string;
+    project_id: string;
+    team_id: string;
+    is_member?: boolean;
+  }>> => {
+    const response = await apiClient.post<IServerResponse<{
+      invite_link_id: string;
+      expires_date: string;
+      project_id: string;
+      team_id: string;
+      is_member?: boolean;
+    }>>(
+      `${AUTH_API_BASE_URL}/auth/verify-project-invite-link`,
       body
     );
     return response.data;
@@ -68,6 +79,18 @@ export const projectMembersApiService = {
     const q = toQueryString({ current_project_id: currentProjectId });
     const response = await apiClient.delete<IServerResponse<IProjectMemberViewModel>>(
       `${rootUrl}/${id}${q}`
+    );
+    return response.data;
+  },
+
+  acceptProjectInvite: async (body: {
+    project_id: string;
+    invitation_id: string;
+    email: string;
+  }): Promise<IServerResponse<any>> => {
+    const response = await apiClient.post<IServerResponse<any>>(
+      `${rootUrl}/accept-project-invite`,
+      body
     );
     return response.data;
   },

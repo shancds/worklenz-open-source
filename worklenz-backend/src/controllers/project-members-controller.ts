@@ -206,29 +206,83 @@ export default class ProjectMembersController extends WorklenzControllerBase {
 
   @HandleExceptions()
   public static async verifyProjectInviteLink(req: IWorkLenzRequest, res: IWorkLenzResponse) {
-    const {project_id, invitation_id, email} = req.body;
-    if (!project_id || !invitation_id || !email) {
+    const {project_id, invitation_id} = req.body;
+    if (!project_id || !invitation_id) {
       return res.status(400).send(new ServerResponse(false, null, "Invalid request."));
     }
-    const q = `SELECT * FROM project_invitations WHERE project_id = $1 AND id = $2 AND expires_at > NOW();`;
+    const q = `SELECT pi.id as invite_link_id, pi.expires_at, pi.project_id, p.team_id FROM project_invitations pi INNER JOIN projects p ON pi.project_id = p.id WHERE pi.project_id = $1 AND pi.id = $2 AND pi.expires_at > NOW() AND pi.status = 'active';`;
     const result = await db.query(q, [project_id, invitation_id]);
     const [data] = result.rows;
     if (!data) {
       return res.status(400).send(new ServerResponse(false, null, "Invalid request."));
     }
-    const q2 = `SELECT u.id FROM users u WHERE u.email = $1;`;
-    const result2 = await db.query(q2, [email.trim()]);
-    const [data2] = result2.rows;
-    if (!data2) {
-      return res.status(400).send(new ServerResponse(false, null, "create account first."));
+    let is_member = false;
+    if (req.user && req.user.id) {
+      // Find team_member_id for this user in the project's team
+      const qMember = `SELECT tm.id FROM team_members tm WHERE tm.user_id = $1 AND tm.team_id = $2`;
+      const resultMember = await db.query(qMember, [req.user.id, data.team_id]);
+      const teamMember = resultMember.rows[0];
+      if (teamMember) {
+        is_member = await this.checkIfMemberExists(project_id, teamMember.id);
+      }
     }
-    const q3 = `SELECT tm.id FROM team_members tm INNER JOIN project_members pm ON tm.id = pm.team_member_id WHERE tm.user_id = $1 AND pm.project_id = $2;`;
-    const result3 = await db.query(q3, [data2.id, project_id]);
-    const [data3] = result3.rows;
-    if (data3) {
-      return res.status(200).send(new ServerResponse(true, null, "User already exists in the project."));
+    return res.status(200).send(new ServerResponse(true, {
+      invite_link_id: data.invite_link_id,
+      expires_date: data.expires_at ? new Date(data.expires_at).toISOString() : null,
+      project_id: data.project_id,
+      team_id: data.team_id,
+      is_member
+    }));
+  }
+
+  public static async acceptProjectInvite(req: IWorkLenzRequest, res: IWorkLenzResponse) {
+    const {project_id, invitation_id, email} = req.body;
+    if (!project_id || !invitation_id || !email) {
+      return res.status(400).send(new ServerResponse(false, null, "Invalid request."));
     }
-    return res.status(400).send(new ServerResponse(false, null, null));
+    // Get invitation and project/team info
+    const qInvite = `SELECT pi.id as invite_link_id, pi.expires_at, pi.project_id, p.team_id FROM project_invitations pi INNER JOIN projects p ON pi.project_id = p.id WHERE pi.project_id = $1 AND pi.id = $2 AND pi.expires_at > NOW() AND pi.status = 'active';`;
+    const resultInvite = await db.query(qInvite, [project_id, invitation_id]);
+    const inviteData = resultInvite.rows[0];
+    if (!inviteData) {
+      return res.status(400).send(new ServerResponse(false, null, "Invalid or expired invitation."));
+    }
+    // Check if user exists
+    const qUser = `SELECT u.id FROM users u WHERE u.email = $1;`;
+    const resultUser = await db.query(qUser, [email.trim()]);
+    const userData = resultUser.rows[0];
+    if (!userData) {
+      return res.status(200).send(new ServerResponse(false, { needs_signup: true }, "User does not exist. Please sign up."));
+    }
+    // Check if user is already a team member
+    const qTeamMember = `SELECT tm.id FROM team_members tm WHERE tm.user_id = $1 AND tm.team_id = $2`;
+    const resultTeamMember = await db.query(qTeamMember, [userData.id, inviteData.team_id]);
+    let teamMemberId;
+    if (resultTeamMember.rows.length > 0) {
+      teamMemberId = resultTeamMember.rows[0].id;
+    } else {
+      // Add as team member
+      const teamMemberReq = { team_id: inviteData.team_id, emails: [email.trim()] };
+      const [member] = await TeamMembersController.createOrInviteMembers(teamMemberReq, req.user || {});
+      teamMemberId = member.team_member_id;
+    }
+    // Check if already in project
+    const isMember = await this.checkIfMemberExists(project_id, teamMemberId);
+    if (isMember) {
+      return res.status(200).send(new ServerResponse(true, { already_in_project: true }, "User already exists in the project."));
+    }
+    // Add to project
+    const projectMemberReq = {
+      team_member_id: teamMemberId,
+      team_id: inviteData.team_id,
+      project_id: project_id,
+      user_id: userData.id,
+      access_level: "MEMBER"
+    };
+    await this.createOrInviteMembers(projectMemberReq);
+    // Increment usage_count
+    await db.query(`UPDATE project_invitations SET usage_count = usage_count + 1 WHERE id = $1`, [invitation_id]);
+    return res.status(200).send(new ServerResponse(true, { added_to_project: true }, "User added to the project."));
   }
 
   @HandleExceptions()

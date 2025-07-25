@@ -10,7 +10,7 @@ const ForgotPasswordPage = lazy(() => import('@/pages/auth/ForgotPasswordPage'))
 const LoggingOutPage = lazy(() => import('@/pages/auth/LoggingOutPage'));
 const AuthenticatingPage = lazy(() => import('@/pages/auth/AuthenticatingPage'));
 const VerifyResetEmailPage = lazy(() => import('@/pages/auth/VerifyResetEmailPage'));
-const ProjectInviteLandingPage = lazy(() => import('@/pages/auth/InviteLandingPage'));
+const ProjectInviteLandingPage = lazy(() => import('@/pages/auth/InviteLinkLandingPage'));
 
 const authRoutes = [
   {

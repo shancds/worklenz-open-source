@@ -8,6 +8,7 @@ import resetEmailValidator from "../../middlewares/validators/reset-email-valida
 import updatePasswordValidator from "../../middlewares/validators/update-password-validator";
 import passwordValidator from "../../middlewares/validators/password-validator";
 import safeControllerFunction from "../../shared/safe-controller-function";
+import ProjectMembersController from "../../controllers/project-members-controller";
 
 const authRouter = express.Router();
 
@@ -27,6 +28,8 @@ authRouter.post("/reset-password", resetEmailValidator, safeControllerFunction(A
 authRouter.post("/update-password", updatePasswordValidator, passwordValidator, safeControllerFunction(AuthController.verify_reset_email));
 
 authRouter.post("/verify-captcha", safeControllerFunction(AuthController.verifyCaptcha));
+
+authRouter.post("/auth/verify-project-invite-link", safeControllerFunction(ProjectMembersController.verifyProjectInviteLink));
 
 // Google authentication
 authRouter.get("/google", (req, res) => {
