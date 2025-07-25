@@ -13,8 +13,7 @@ import {
   toggleProjectMemberDrawer,
 } from '@/features/projects/singleProject/members/projectMembersSlice';
 import SingleAvatar from '@/components/common/single-avatar/single-avatar';
-import { DeleteOutlined, MailOutlined } from '@ant-design/icons';
-import { LinkOutlined } from '@ant-design/icons';
+import { DeleteOutlined, MailOutlined } from '@/shared/antd-imports';
 import { getTeamMembers } from '@/features/team-members/team-members.slice';
 import logger from '@/utils/errorLogger';
 import { validateEmail } from '@/utils/validateEmail';
@@ -35,6 +34,12 @@ const ProjectMemberDrawer = () => {
   const [members, setMembers] = useState<ITeamMembersViewModel>({ data: [], total: 0 });
   const [teamMembersLoading, setTeamMembersLoading] = useState(false);
   const [isCoping, setIsCoping] = useState(false);
+
+  // Filter out members already in the project
+  const currentProjectMemberIds = (currentMembersList || []).map(m => m.team_member_id).filter(Boolean);
+  const availableMembers = (members?.data || []).filter(
+    member => member.id && !currentProjectMemberIds.includes(member.id)
+  );
 
   const fetchProjectMembers = async () => {
     if (!projectId) return;
@@ -241,7 +246,7 @@ const ProjectMemberDrawer = () => {
               onSearch={handleSearch}
               onChange={handleSelectChange}
               onKeyDown={handleKeyDown}
-              options={members?.data?.map(member => ({
+              options={availableMembers.map(member => ({
                 key: member.id,
                 value: member.id,
                 name: member.name,
