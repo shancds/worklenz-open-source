@@ -1,4 +1,4 @@
-import { Drawer, Flex, Form, Select, Typography, List, Button, Modal, Divider, message } from 'antd/es';
+import { Flex, Form, Select, Typography, List, Button, Modal, Divider } from 'antd/es';
 import { useTranslation } from 'react-i18next';
 import { useEffect, useState } from 'react';
 
@@ -13,12 +13,13 @@ import {
   toggleProjectMemberDrawer,
 } from '@/features/projects/singleProject/members/projectMembersSlice';
 import SingleAvatar from '@/components/common/single-avatar/single-avatar';
-import { DeleteOutlined, MailOutlined } from '@/shared/antd-imports';
+import { MailOutlined } from '@/shared/antd-imports';
 import { getTeamMembers } from '@/features/team-members/team-members.slice';
 import logger from '@/utils/errorLogger';
 import { validateEmail } from '@/utils/validateEmail';
 import { ITeamMembersViewModel } from '@/types/teamMembers/teamMembersViewModel.types';
 import { teamMembersApiService } from '@/api/team-members/teamMembers.api.service';
+import LinkOutlined from '@ant-design/icons/lib/icons/LinkOutlined';
 
 const ProjectMemberDrawer = () => {
   const { t } = useTranslation('project-view/project-member-drawer');
