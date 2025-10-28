@@ -5,6 +5,8 @@ import {serialize} from "./serialize";
 
 import GoogleLogin from "./passport-strategies/passport-google";
 import GoogleMobileLogin from "./passport-strategies/passport-google-mobile";
+import MicrosoftSSO from "./passport-strategies/passport-microsoft-sso";
+import MicrosoftMobileLogin from "./passport-strategies/passport-microsoft-mobile";
 import LocalLogin from "./passport-strategies/passport-local-login";
 import LocalSignup from "./passport-strategies/passport-local-signup";
 
@@ -17,6 +19,8 @@ export default (passport: PassportStatic) => {
   passport.use("local-signup", LocalSignup);
   passport.use(GoogleLogin);
   passport.use("google-mobile", GoogleMobileLogin);
+  passport.use("microsoft-sso", MicrosoftSSO);
+  passport.use("microsoft-mobile", MicrosoftMobileLogin);
   passport.serializeUser(serialize);
   passport.deserializeUser(deserialize);
 };

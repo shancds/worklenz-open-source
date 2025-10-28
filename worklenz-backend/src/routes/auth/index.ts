@@ -59,6 +59,63 @@ authRouter.get("/google/verify", (req, res) => {
 // Mobile Google Sign-In using Passport strategy
 authRouter.post("/google/mobile", AuthController.googleMobileAuthPassport);
 
+// Mobile Microsoft Sign-In using Passport strategy
+authRouter.post("/microsoft/mobile", AuthController.microsoftMobileAuthPassport);
+
+// Microsoft 365 SSO authentication
+authRouter.get("/microsoft/sso", (req, res, next) => {
+  const MSALConfig = require("../../config/msal-config").default;
+  const msalInstance = MSALConfig.getInstance();
+  const authCodeUrlParameters = {
+    ...MSALConfig.getAuthCodeUrlParameters(),
+    state: JSON.stringify({
+      teamMember: req.query.teamMember || null,
+      team: req.query.team || null,
+      teamName: req.query.teamName || null,
+      project: req.query.project || null
+    })
+  };
+
+  msalInstance.getAuthCodeUrl(authCodeUrlParameters)
+    .then((response: string) => {
+      res.redirect(response);
+    })
+    .catch((error: any) => {
+      console.error("Microsoft SSO initiation error:", error);
+      res.redirect(`${process.env.LOGIN_FAILURE_REDIRECT}?error=${encodeURIComponent("Microsoft SSO initiation failed")}`);
+    });
+});
+
+// Microsoft SSO callback - matches your Azure AD redirect URI
+authRouter.get("/microsoft/callback", (req, res) => {
+  let error = "";
+  if ((req.session as any).error) {
+    error = `?error=${encodeURIComponent((req.session as any).error as string)}`;
+    delete (req.session as any).error;
+  }
+
+  const failureRedirect = process.env.LOGIN_FAILURE_REDIRECT + error;
+  return passport.authenticate("microsoft-sso", {
+    failureRedirect,
+    successRedirect: process.env.LOGIN_SUCCESS_REDIRECT
+  })(req, res);
+});
+
+// Alternative Microsoft SSO callback (for consistency)
+authRouter.get("/microsoft/sso/callback", (req, res) => {
+  let error = "";
+  if ((req.session as any).error) {
+    error = `?error=${encodeURIComponent((req.session as any).error as string)}`;
+    delete (req.session as any).error;
+  }
+
+  const failureRedirect = process.env.LOGIN_FAILURE_REDIRECT + error;
+  return passport.authenticate("microsoft-sso", {
+    failureRedirect,
+    successRedirect: process.env.LOGIN_SUCCESS_REDIRECT
+  })(req, res);
+});
+
 // Passport logout
 authRouter.get("/logout", AuthController.logout);
 

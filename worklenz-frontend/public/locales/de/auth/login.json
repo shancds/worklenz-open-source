@@ -11,6 +11,7 @@
   "signupButton": "Registrieren",
   "forgotPasswordButton": "Passwort vergessen?",
   "signInWithGoogleButton": "Mit Google anmelden",
+  "signInWithMicrosoftButton": "Mit Microsoft anmelden",
   "dontHaveAccountText": "Noch kein Konto?",
   "orText": "ODER",
   "successMessage": "Sie haben sich erfolgreich angemeldet!",

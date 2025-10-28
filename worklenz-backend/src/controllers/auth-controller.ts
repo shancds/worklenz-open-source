@@ -255,6 +255,145 @@ export default class AuthController extends WorklenzControllerBase {
     })(req, res, next);
   }
 
+  public static microsoftMobileAuthPassport(req: IWorkLenzRequest, res: IWorkLenzResponse, next: NextFunction) {
+    
+    const mobileOptions = {
+      session: true,
+      failureFlash: true,
+      failWithError: false
+    };
+
+    passport.authenticate("microsoft-mobile", mobileOptions, (err: any, user: any, info: any) => {
+      if (err) {
+        return res.status(500).send({
+          done: false,
+          message: "Authentication failed",
+          body: null
+        });
+      }
+      
+      if (!user) {
+        return res.status(400).send({
+          done: false,
+          message: info?.message || "Authentication failed",
+          body: null
+        });
+      }
+      // Log the user in (create session)
+      req.login(user, (loginErr) => {
+        if (loginErr) {
+          return res.status(500).send({
+            done: false,
+            message: "Session creation failed",
+            body: null
+          });
+        }
+        
+        // Add build version
+        user.build_v = FileConstants.getRelease();
+        
+        // Ensure session is saved and cookie is set
+        req.session.save((saveErr) => {
+          if (saveErr) {
+            return res.status(500).send({
+              done: false,
+              message: "Session save failed",
+              body: null
+            });
+          }
+          
+          // Get session cookie details
+          const sessionName = process.env.SESSION_NAME || 'connect.sid';
+          
+          // Return response with session info for mobile app to handle
+          res.setHeader('X-Session-ID', req.sessionID);
+          res.setHeader('X-Session-Name', sessionName);
+          
+          return res.status(200).send({
+            done: true,
+            message: "Login successful",
+            user,
+            authenticated: true,
+            sessionId: req.sessionID,
+            sessionName: sessionName,
+            newSessionId: req.sessionID
+          });
+        });
+      }); // Close login callback
+    })(req, res, next);
+  }
+
+  @HandleExceptions({logWithError: "body"})
+  public static async microsoftMobileAuth(req: IWorkLenzRequest, res: IWorkLenzResponse) {
+    const {accessToken} = req.body;
+    
+    if (!accessToken) {
+      return res.status(400).send(new ServerResponse(false, null, "Access token is required"));
+    }
+
+    try {
+      // Verify Microsoft access token by calling Microsoft Graph API
+      const response = await axios.get('https://graph.microsoft.com/v1.0/me', {
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+      
+      const profile = response.data;
+
+      // Validate required fields
+      if (!profile.mail && !profile.userPrincipalName) {
+        return res.status(400).send(new ServerResponse(false, null, "Email not found in Microsoft profile"));
+      }
+
+      const email = (profile.mail || profile.userPrincipalName).toLowerCase().trim();
+
+      // Check for existing local account
+      const localAccountResult = await db.query("SELECT 1 FROM users WHERE LOWER(email) = $1 AND password IS NOT NULL AND is_deleted IS FALSE;", [email]);
+      if (localAccountResult.rowCount) {
+        return res.status(400).send(new ServerResponse(false, null, `No Microsoft account exists for email ${email}.`));
+      }
+
+      // Check if user exists
+      const userResult = await db.query(
+        "SELECT id, microsoft_id, name, email, active_team FROM users WHERE microsoft_id = $1 OR LOWER(email) = $2;",
+        [profile.id, email]
+      );
+
+      let user: any;
+      if (userResult.rowCount) {
+        // Existing user - login
+        user = userResult.rows[0];
+      } else {
+        // New user - register
+        const microsoftUserData = {
+          id: profile.id,
+          displayName: profile.displayName,
+          email: email,
+          tenantId: profile.tenantId || null
+        };
+
+        const registerResult = await db.query("SELECT register_microsoft_user($1) AS user;", [JSON.stringify(microsoftUserData)]);
+        user = registerResult.rows[0].user;
+      }
+
+      // Create session
+      req.login(user, (err) => {
+        if (err) {
+          log_error(err);
+          return res.status(500).send(new ServerResponse(false, null, "Authentication failed"));
+        }
+        
+        user.build_v = FileConstants.getRelease();
+        return res.status(200).send(new AuthResponse("Login Successful!", true, user, null, "User successfully logged in"));
+      });
+
+    } catch (error) {
+      log_error(error);
+      return res.status(400).send(new ServerResponse(false, null, "Invalid access token"));
+    }
+  }
+
   @HandleExceptions({logWithError: "body"})
   public static async googleMobileAuth(req: IWorkLenzRequest, res: IWorkLenzResponse) {
     const {idToken} = req.body;

@@ -11,6 +11,7 @@ import { useAppDispatch } from '@/hooks/useAppDispatch';
 import { useAppSelector } from '@/hooks/useAppSelector';
 import PageHeader from '@components/AuthPageHeader';
 import googleIcon from '@assets/images/google-icon.png';
+import microsoftIcon from '@assets/images/microsoft-icon.svg';
 import { login, verifyAuthentication } from '@/features/auth/authSlice';
 import logger from '@/utils/errorLogger';
 import { setUser } from '@/features/user/userSlice';
@@ -48,6 +49,7 @@ const LoginPage: React.FC = () => {
   });
 
   const enableGoogleLogin = import.meta.env.VITE_ENABLE_GOOGLE_LOGIN === 'true' || false;
+  const enableMicrosoftLogin = import.meta.env.VITE_ENABLE_MICROSOFT_LOGIN === 'true' || false;
 
   useDocumentTitle('Login');
 
@@ -139,6 +141,15 @@ const LoginPage: React.FC = () => {
     }
   }, [trackMixpanelEvent, t]);
 
+  const handleMicrosoftLogin = useCallback(() => {
+    try {
+      // trackMixpanelEvent(evt_login_with_microsoft_click); // Add this event if needed
+      window.location.href = `${import.meta.env.VITE_API_URL}/secure/microsoft/sso`;
+    } catch (error) {
+      logger.error('Microsoft login failed', error);
+    }
+  }, [trackMixpanelEvent, t]);
+
   const handleRememberMeChange = useCallback(
     (checked: boolean) => {
       trackMixpanelEvent(evt_login_remember_me_click, { checked });
@@ -160,10 +171,20 @@ const LoginPage: React.FC = () => {
       alignItems: 'center',
       justifyContent: 'center',
     },
+    microsoftButton: {
+      borderRadius: 4,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     link: {
       fontSize: 14,
     },
     googleIcon: {
+      maxWidth: 20,
+      marginRight: 8,
+    },
+    microsoftIcon: {
       maxWidth: 20,
       marginRight: 8,
     },
@@ -235,20 +256,35 @@ const LoginPage: React.FC = () => {
               {t('loginButton')}
             </Button>
 
-            {enableGoogleLogin && (
+            {(enableGoogleLogin || enableMicrosoftLogin) && (
               <>
                 <Typography.Text style={{ textAlign: 'center' }}>{t('orText')}</Typography.Text>
 
-                <Button
-                  block
-                  type="default"
-                  size="large"
-                  onClick={handleGoogleLogin}
-                  style={styles.googleButton}
-                >
-                  <img src={googleIcon} alt="Google" style={styles.googleIcon} />
-                  {t('signInWithGoogleButton')}
-                </Button>
+                {enableGoogleLogin && (
+                  <Button
+                    block
+                    type="default"
+                    size="large"
+                    onClick={handleGoogleLogin}
+                    style={styles.googleButton}
+                  >
+                    <img src={googleIcon} alt="Google" style={styles.googleIcon} />
+                    {t('signInWithGoogleButton')}
+                  </Button>
+                )}
+
+                {enableMicrosoftLogin && (
+                  <Button
+                    block
+                    type="default"
+                    size="large"
+                    onClick={handleMicrosoftLogin}
+                    style={styles.microsoftButton}
+                  >
+                    <img src={microsoftIcon} alt="Microsoft" style={styles.microsoftIcon} />
+                    {t('signInWithMicrosoftButton')}
+                  </Button>
+                )}
               </>
             )}
           </Flex>

@@ -9,6 +9,7 @@ import { CheckCircleTwoTone, CloseCircleTwoTone } from '@/shared/antd-imports';
 import { useAppSelector } from '@/hooks/useAppSelector';
 
 import googleIcon from '@/assets/images/google-icon.png';
+import microsoftIcon from '@/assets/images/microsoft-icon.svg';
 import PageHeader from '@components/AuthPageHeader';
 
 import { authApiService } from '@/api/auth/auth.api.service';
@@ -70,6 +71,7 @@ const SignupPage = () => {
   };
 
   const enableGoogleLogin = import.meta.env.VITE_ENABLE_GOOGLE_LOGIN === 'true' || false;
+  const enableMicrosoftLogin = import.meta.env.VITE_ENABLE_MICROSOFT_LOGIN === 'true' || false;
   const enableRecaptcha =
     import.meta.env.VITE_ENABLE_RECAPTCHA === 'true' &&
     import.meta.env.VITE_RECAPTCHA_SITE_KEY &&
@@ -271,6 +273,17 @@ const SignupPage = () => {
     }
   };
 
+  const onMicrosoftSignUpClick = () => {
+    try {
+      // trackMixpanelEvent(evt_signup_with_microsoft_click); // Add this event if needed
+      const queryParams = getInvitationQueryParams();
+      const url = `${import.meta.env.VITE_API_URL}/secure/microsoft/sso${queryParams ? `?${queryParams}` : ''}`;
+      window.location.href = url;
+    } catch (error) {
+      message.error('Failed to redirect to Microsoft sign up');
+    }
+  };
+
   const formRules = {
     name: [
       {
@@ -465,24 +478,43 @@ const SignupPage = () => {
               {t('signupButton')}
             </Button>
 
-            {enableGoogleLogin && (
+            {(enableGoogleLogin || enableMicrosoftLogin) && (
               <>
                 <Typography.Text style={{ textAlign: 'center' }}>{t('orText')}</Typography.Text>
 
-                <Button
-                  block
-                  type="default"
-                  size="large"
-                  onClick={onGoogleSignUpClick}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    borderRadius: 4,
-                  }}
-                >
-                  <img src={googleIcon} alt="google icon" style={{ maxWidth: 20, width: '100%' }} />
-                  {t('signInWithGoogleButton')}
-                </Button>
+                {enableGoogleLogin && (
+                  <Button
+                    block
+                    type="default"
+                    size="large"
+                    onClick={onGoogleSignUpClick}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      borderRadius: 4,
+                    }}
+                  >
+                    <img src={googleIcon} alt="google icon" style={{ maxWidth: 20, width: '100%' }} />
+                    {t('signInWithGoogleButton')}
+                  </Button>
+                )}
+
+                {enableMicrosoftLogin && (
+                  <Button
+                    block
+                    type="default"
+                    size="large"
+                    onClick={onMicrosoftSignUpClick}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      borderRadius: 4,
+                    }}
+                  >
+                    <img src={microsoftIcon} alt="microsoft icon" style={{ maxWidth: 20, width: '100%' }} />
+                    {t('signUpWithMicrosoftButton')}
+                  </Button>
+                )}
               </>
             )}
           </Flex>
