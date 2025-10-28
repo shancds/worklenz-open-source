@@ -52,6 +52,7 @@ class MSALConfig {
     return {
       scopes: ["openid", "profile", "email"],
       redirectUri: process.env.MICROSOFT_SSO_REDIRECT_URI as string,
+      prompt: (process.env.MICROSOFT_SSO_PROMPT as string) || "select_account", // Force account selection screen
     };
   }
 
