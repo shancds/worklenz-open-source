@@ -84,6 +84,34 @@ async function handleMicrosoftSSO(req: Request, done: any) {
     if (userResult.rowCount) {
       // Existing user - login
       const user = userResult.rows[0];
+      const provisioningMode = process.env.SSO_PROVISIONING_MODE || "auto";
+
+      // In manual mode, check if user has invitation for team access
+      if (provisioningMode === "manual" && stateData.team) {
+        // Check if user has invitation for the specific team they're trying to access
+        const teamInvitationResult = await db.query(
+          "SELECT ei.team_id, ei.team_member_id FROM email_invitations ei WHERE LOWER(ei.email) = $1 AND ei.team_id = $2;",
+          [normalizedEmail, stateData.team]
+        );
+
+        if (!teamInvitationResult.rowCount) {
+          const message = `You don't have an invitation to access this team. Please contact your administrator.`;
+          (req.session as any).error = message;
+          return done(null, false, { message: req.flash(ERROR_KEY, message) });
+        }
+
+        // User has invitation for this team - accept it
+        const invitation = teamInvitationResult.rows[0];
+        try {
+          await db.query("SELECT accept_invitation($1, $2, $3);", [
+            normalizedEmail,
+            invitation.team_member_id,
+            user.id
+          ]);
+        } catch (error) {
+          log_error(error, user);
+        }
+      }
 
       // Update active team if user came from invitation
       if (stateData.team) {
@@ -96,24 +124,62 @@ async function handleMicrosoftSSO(req: Request, done: any) {
 
       return done(null, user, { message: "User successfully logged in" });
     } else {
-      // New user - register (auto-provisioning)
+      // New user - register
       const provisioningMode = process.env.SSO_PROVISIONING_MODE || "auto";
 
       if (provisioningMode === "manual") {
-        const message = `User not provisioned. Please contact your administrator.`;
-        (req.session as any).error = message;
-        return done(null, false, { message: req.flash(ERROR_KEY, message) });
+        // Check if user has an email invitation
+        const invitationResult = await db.query(
+          "SELECT ei.team_id, ei.team_member_id, ei.name FROM email_invitations ei WHERE LOWER(ei.email) = $1;",
+          [normalizedEmail]
+        );
+
+        if (!invitationResult.rowCount) {
+          const message = `Only invited members can sign up. Please contact your administrator for an invitation.`;
+          (req.session as any).error = message;
+          return done(null, false, { message: req.flash(ERROR_KEY, message) });
+        }
+
+        // User has invitation - proceed with registration
+        const invitation = invitationResult.rows[0];
+        
+        // Add invitation data to body for registration
+        body.team = invitation.team_id;
+        body.member_id = invitation.team_member_id;
+        body.invited_team_id = invitation.team_id;
+        body.team_member_id = invitation.team_member_id;
+
+        // Auto-provision invited user
+        const registerResult = await db.query(
+          "SELECT register_microsoft_user($1) AS user;",
+          [JSON.stringify(body)]
+        );
+        const { user } = registerResult.rows[0];
+
+        // Accept the invitation (this will delete the invitation and assign user to team)
+        try {
+          await db.query("SELECT accept_invitation($1, $2, $3);", [
+            normalizedEmail,
+            invitation.team_member_id,
+            user.id
+          ]);
+        } catch (error) {
+          log_error(error, user);
+        }
+
+        sendWelcomeEmail(user.email, body.displayName);
+        return done(null, user, { message: "User successfully registered and logged in" });
+      } else {
+        // Auto-provisioning mode
+        const registerResult = await db.query(
+          "SELECT register_microsoft_user($1) AS user;",
+          [JSON.stringify(body)]
+        );
+        const { user } = registerResult.rows[0];
+
+        sendWelcomeEmail(user.email, body.displayName);
+        return done(null, user, { message: "User successfully registered and logged in" });
       }
-
-      // Auto-provision new user
-      const registerResult = await db.query(
-        "SELECT register_microsoft_user($1) AS user;",
-        [JSON.stringify(body)]
-      );
-      const { user } = registerResult.rows[0];
-
-      sendWelcomeEmail(user.email, body.displayName);
-      return done(null, user, { message: "User successfully registered and logged in" });
     }
   } catch (error: any) {
     log_error(error);

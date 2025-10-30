@@ -60,28 +60,74 @@ async function handleMobileMicrosoftAuth(req: Request, done: any) {
     }
     
     // New user - register
-    const microsoftUserData = {
-      id: profile.id,
-      displayName: profile.displayName,
-      email: email,
-      tenantId: profile.tenantId || null
-    };
+    const provisioningMode = process.env.SSO_PROVISIONING_MODE || "auto";
 
-    const registerResult = await db.query(
-      "SELECT register_microsoft_user($1) AS user;",
-      [JSON.stringify(microsoftUserData)]
-    );
-    const { user } = registerResult.rows[0];
+    if (provisioningMode === "manual") {
+      // Check if user has an email invitation
+      const invitationResult = await db.query(
+        "SELECT ei.team_id, ei.team_member_id, ei.name FROM email_invitations ei WHERE LOWER(ei.email) = $1;",
+        [email]
+      );
 
-    return done(null, user, {
-      message: "User successfully registered and logged in",
-    });
+      if (!invitationResult.rowCount) {
+        return done(null, false, { message: "Only invited members can sign up. Please contact your administrator for an invitation." });
+      }
+
+      // User has invitation - proceed with registration
+      const invitation = invitationResult.rows[0];
+      
+      const microsoftUserData = {
+        id: profile.id,
+        displayName: profile.displayName,
+        email: email,
+        tenantId: profile.tenantId || null,
+        team: invitation.team_id,
+        member_id: invitation.team_member_id,
+        invited_team_id: invitation.team_id,
+        team_member_id: invitation.team_member_id
+      };
+
+      const registerResult = await db.query(
+        "SELECT register_microsoft_user($1) AS user;",
+        [JSON.stringify(microsoftUserData)]
+      );
+      const { user } = registerResult.rows[0];
+
+      // Accept the invitation
+      try {
+        await db.query("SELECT accept_invitation($1, $2, $3);", [
+          email,
+          invitation.team_member_id,
+          user.id
+        ]);
+      } catch (error) {
+        log_error(error, user);
+      }
+
+      return done(null, user, { message: "User successfully registered and logged in" });
+    } else {
+      // Auto-provisioning mode
+      const microsoftUserData = {
+        id: profile.id,
+        displayName: profile.displayName,
+        email: email,
+        tenantId: profile.tenantId || null
+      };
+
+      const registerResult = await db.query(
+        "SELECT register_microsoft_user($1) AS user;",
+        [JSON.stringify(microsoftUserData)]
+      );
+      const { user } = registerResult.rows[0];
+
+      return done(null, user, { message: "User successfully registered and logged in" });
+    }
   } catch (error: any) {
     log_error(error);
     if (error.response?.status === 401) {
       return done(null, false, { message: "Invalid access token" });
     }
-    return done(error);
+    return done(null, false, {message: `Microsoft authentication failed: ${error.errorMessage || error.message}`});
   }
 }
 
